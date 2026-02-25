@@ -1,0 +1,4 @@
+﻿__pycache__/
+*.pyc
+moments_data/
+scraper_stdout.txt

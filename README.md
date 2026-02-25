@@ -73,6 +73,62 @@ wx.SendFiles(filepath=files, who=who)  # 向`文件传输助手`发送上述三�
 # 下载当前聊天窗口的聊天记录及图片
 msgs = wx.GetAllMessage(savepic=True)   # 获取聊天记录，及自动下载图片
 ```
+## 朋友圈定时抓取
+
+项目包含一个朋友圈自动抓取工具，由 `moments_scraper.py`（主逻辑）和 `moments_ui.py`（UI 交互）组成。
+
+### 启动抓取
+
+因为微信运行在 **Session 1**（桌面会话），而我们通常从 Session 0 或远程连接操作，所以需要通过 **Windows 计划任务** 在正确的会话中执行脚本：
+
+```shell
+schtasks /Run /TN "MomentsExplore"
+```
+
+- `schtasks` — Windows 自带的**计划任务命令行工具**，用于创建、查询、运行和管理系统中的计划任务
+- `/Run` — 立即运行指定的计划任务（不用等到预定时间）
+- `/TN "MomentsExplore"` — 指定任务名称（Task Name），这里是预先创建好的 `MomentsExplore` 任务
+
+该任务会在 Session 1 中启动 `run_explore.bat`，进而执行 `moments_scraper.py`，自动滚动朋友圈、解析内容、保存图片到 `moments_data/` 目录。
+
+### 首次创建计划任务
+
+如果系统中还没有 `MomentsExplore` 任务（比如新环境部署），需要先创建：
+
+```shell
+schtasks /Create /TN "MomentsExplore" /TR "C:\Users\Docker\Desktop\wxauto\run_explore.bat" /SC ONCE /ST 00:00 /RU Docker /IT /F
+```
+
+| 参数 | 含义 |
+|---|---|
+| `/Create` | 创建一个新的计划任务 |
+| `/TN "MomentsExplore"` | 任务名称 |
+| `/TR "...\run_explore.bat"` | 要执行的脚本路径 |
+| `/SC ONCE /ST 00:00` | 调度类型设为"一次性"，不自动触发，仅通过 `/Run` 手动启动 |
+| `/RU Docker` | 以 `Docker` 用户身份运行 |
+| `/IT` | **Interactive Token**，任务在用户的交互式桌面会话（Session 1）中运行，这样才能操控微信窗口 |
+| `/F` | 同名任务已存在时覆盖 |
+
+> **为什么需要计划任务？** 微信窗口运行在桌面会话（Session 1），而通过 SSH/远程连接进来的终端通常在 Session 0。直接在 Session 0 执行 UI 自动化脚本无法操控 Session 1 的窗口。计划任务加 `/IT` 参数可以让脚本在 Session 1 中运行，从而正常操控微信。
+
+### 其他常用命令
+
+```shell
+# 查看任务是否存在及其状态
+schtasks /Query /TN "MomentsExplore"
+
+# 停止正在运行的抓取进程
+taskkill /F /IM python.exe
+```
+
+### 数据存储
+
+抓取的数据保存在 `moments_data/` 目录下：
+- `moments.json` — 所有朋友圈记录（作者、文字、时间、图片路径等）
+- `checkpoint.json` — 断点信息，用于避免重复抓取
+- `media/<id>/` — 每条朋友圈的图片文件
+- `scraper.log` — 运行日志
+
 ## 注意事项
 目前还在开发中，测试案例较少，使用过程中可能遇到各种Bug
 
