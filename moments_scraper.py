@@ -31,7 +31,7 @@ LOG_FILE = os.path.join(SAVE_DIR, 'scraper.log')
 DATA_FILE = os.path.join(SAVE_DIR, 'moments.json')
 CHECKPOINT_FILE = os.path.join(SAVE_DIR, 'checkpoint.json')
 MEDIA_DIR = os.path.join(SAVE_DIR, 'media')
-INTERVAL = 300
+INTERVAL = 60
 MAX_CONSECUTIVE_EXISTING = 3
 
 os.makedirs(MEDIA_DIR, exist_ok=True)
