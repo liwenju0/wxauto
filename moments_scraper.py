@@ -162,6 +162,10 @@ def save_images(item, moment_id, image_count, feed_list, sns_hwnd=None):
 # -- Scraper loop --------------------------------------------------------
 def scrape_one_round(wx, scraped_ids):
     log.info("Opening moments...")
+    old = uia.WindowControl(ClassName="SnsWnd", searchDepth=1)
+    if old.Exists(0.5):
+        old.SendKeys("{Escape}")
+        time.sleep(1)
     wx.A_MomentsIcon.Click(simulateMove=False)
     time.sleep(3)
     sns_wnd = uia.WindowControl(ClassName="SnsWnd", searchDepth=1)
@@ -185,6 +189,8 @@ def scrape_one_round(wx, scraped_ids):
                 consecutive_existing += 1
                 if consecutive_existing >= MAX_CONSECUTIVE_EXISTING:
                     log.info(f"Hit {MAX_CONSECUTIVE_EXISTING} consecutive known posts, stopping.")
+                    mui.close_dialog()
+                    mui.close_preview()
                     sns_wnd.SendKeys('{Escape}')
                     return new_count
                 continue
@@ -202,6 +208,8 @@ def scrape_one_round(wx, scraped_ids):
             log.info(f"New: {parsed['author']} - {parsed['text'][:30]} ({parsed['time']})")
         feed_list.WheelDown(wheelTimes=5)
         time.sleep(1.5)
+    mui.close_dialog()
+    mui.close_preview()
     sns_wnd.SendKeys("{Escape}")
     return new_count
 

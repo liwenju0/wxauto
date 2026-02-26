@@ -167,19 +167,22 @@ def find_img_buttons(control, _depth=0, _max=10):
 # ===========================================================================
 
 def open_image_preview(btn, feed_list=None, sns_hwnd=None):
-    """Click an image thumbnail and wait for the preview window."""
-    if feed_list:
-        cx, cy = scroll_into_view(btn, feed_list)
-    else:
-        cx, cy = btn_center(btn)
-    log.info("Img btn at (%d,%d)", cx, cy)
-    smart_click(cx, cy, sns_hwnd)
-    time.sleep(5)
-
-    preview = uia.WindowControl(ClassName=PREVIEW_CLASS, searchDepth=1)
-    if preview.Exists(5):
-        return preview
-    log.warning("Preview window not found")
+    """Click an image thumbnail and wait for the preview window (with retry)."""
+    for attempt in range(2):
+        if feed_list:
+            cx, cy = scroll_into_view(btn, feed_list)
+        else:
+            cx, cy = btn_center(btn)
+        log.info("Img btn at (%d,%d) attempt=%d", cx, cy, attempt + 1)
+        if attempt > 0 and sns_hwnd:
+            _user32.SetForegroundWindow(sns_hwnd)
+            time.sleep(0.5)
+        smart_click(cx, cy, sns_hwnd)
+        time.sleep(3)
+        preview = uia.WindowControl(ClassName=PREVIEW_CLASS, searchDepth=1)
+        if preview.Exists(5):
+            return preview
+        log.warning("Preview not found (attempt %d)", attempt + 1)
     return None
 
 
@@ -189,6 +192,10 @@ def close_preview():
         p = uia.WindowControl(ClassName=PREVIEW_CLASS, searchDepth=1)
         if p.Exists(0.5):
             p.SendKeys("{Escape}")
+            for _ in range(10):
+                time.sleep(0.5)
+                if not uia.WindowControl(ClassName=PREVIEW_CLASS, searchDepth=1).Exists(0.3):
+                    break
             time.sleep(0.5)
     except Exception:
         pass
